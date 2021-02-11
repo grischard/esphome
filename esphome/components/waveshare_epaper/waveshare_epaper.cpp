@@ -889,75 +889,182 @@ void WaveshareEPaper7P5InV2::dump_config() {
   LOG_UPDATE_INTERVAL(this);
 }
 
+  // 7.5inch HD e-Paper commands
+  static const uint8_t HDEPAPER75_DRIVER_OUTPUT_CONTROL = 0x01;
+  static const uint8_t HDEPAPER75_GATE_DRIVING_VOLTAGE = 0x03;
+  static const uint8_t HDEPAPER75_SOURCE_DRIVING_VOLTAGE = 0x04;
+  static const uint8_t HDEPAPER75_SOFT_START_SETTING = 0x0C;
+  static const uint8_t HDEPAPER75_GATE_SCAN_START_POSITION = 0x0F;
+  static const uint8_t HDEPAPER75_DEEP_SLEEP_MODE = 0x10;
+  static const uint8_t HDEPAPER75_DATA_ENTRY_MODE = 0x11;
+  static const uint8_t HDEPAPER75_SW_RESET = 0x12;
+  static const uint8_t HDEPAPER75_HV_READY = 0x14;
+  static const uint8_t HDEPAPER75_VCI_DETECT = 0x15;
+  static const uint8_t HDEPAPER75_TEMP_SENSOR_SEL = 0x18;
+  static const uint8_t HDEPAPER75_TEMP_SENSOR_WRITE = 0x1A;
+  static const uint8_t HDEPAPER75_TEMP_SENSOR_READ = 0x1B;
+  static const uint8_t HDEPAPER75_TEMP_SENSOR_WRITE_EXT = 0x1C;
+  static const uint8_t HDEPAPER75_MASTER_ACTIVATION = 0x20;
+  static const uint8_t HDEPAPER75_DISPLAY_UPDATE_CONTROL_1 = 0x21;
+  static const uint8_t HDEPAPER75_DISPLAY_UPDATE_CONTROL_2 = 0x22;
+  static const uint8_t HDEPAPER75_WRITE_RAM_BLACK = 0x24;
+  static const uint8_t HDEPAPER75_WRITE_RAM_RED = 0x26;
+  static const uint8_t HDEPAPER75_READ_RAM = 0x27;
+  static const uint8_t HDEPAPER75_VCOM_SENSE = 0x28;
+  static const uint8_t HDEPAPER75_VCOM_SENSE_DURATION = 0x29;
+  static const uint8_t HDEPAPER75_PROGRAM_VCOM_OTP = 0x2A;
+  static const uint8_t HDEPAPER75_WRITE_REGISTER_VCOM = 0x2B;
+  static const uint8_t HDEPAPER75_WRITE_VCOM = 0x2C;
+  static const uint8_t HDEPAPER75_READ_OTP = 0x2D;
+  static const uint8_t HDEPAPER75_CRC_CALC = 0x34;
+  static const uint8_t HDEPAPER75_READ_CRC_STATUS = 0x35;
+  static const uint8_t HDEPAPER75_PROGRAM_OTP = 0x36;
+  static const uint8_t HDEPAPER75_OTP_DISPLAY_OPTION_REG = 0x37;
+  static const uint8_t HDEPAPER75_OTP_USER_ID_REG = 0x38;
+  static const uint8_t HDEPAPER75_OTP_PROGRAM_MODE = 0x39;
+  static const uint8_t HDEPAPER75_RESERVED1 = 0x3A;
+  static const uint8_t HDEPAPER75_RESERVED2 = 0x3B;
+  static const uint8_t HDEPAPER75_BORDER_WAVEFORM = 0x3C;
+  static const uint8_t HDEPAPER75_READ_RAM_OPTION = 0x41;
+  static const uint8_t HDEPAPER75_SET_RAM_X_START_END_POS = 0x44;
+  static const uint8_t HDEPAPER75_SET_RAM_Y_START_END_POS = 0x45;
+  static const uint8_t HDEPAPER75_AUTO_WRITE_RED_RAM = 0x46;
+  static const uint8_t HDEPAPER75_AUTO_WRITE_BLACK_RAM = 0x47;
+  static const uint8_t HDEPAPER75_SET_RAM_X_ADDRESS = 0x4E;
+  static const uint8_t HDEPAPER75_SET_RAM_Y_ADDRESS = 0x4F;
+  static const uint8_t HDEPAPER75_NOP = 0x7F;
+
 void WaveshareEPaper7P5InHD::initialize() {
-  this->wait_until_idle_();
-  this->command(0x12);
-  this->wait_until_idle_();
 
-  this->command(0x46);
+  // Awful, terrible, unreadable specification at https://waveshare.com/w/upload/2/27/7inch_HD_e-Paper_Specification.pdf
+  // The controller documentation isn't a lot better than the first pdf: http://e-paper-display.com/SSD1677Specification.pdf
+  // The manufacturer's FAQ: http://e-paper-display.com/news_detail/newsId%3d44.html
+  // See also:
+  // https://github.com/ZinggJM/GxEPD2/blob/master/src/epd3c/GxEPD2_750c_Z90.h
+  // https://github.com/ZinggJM/GxEPD2/blob/master/src/epd3c/GxEPD2_750c_Z90.cpp
+  // https://github.com/waveshare/e-Paper/blob/master/RaspberryPi_JetsonNano/python/lib/waveshare_epd/epd7in5b_HD.py
+
+  // uint32_t buf_len = this->get_buffer_length_() / 2;
+  uint32_t buf_len = this->get_buffer_length_();
+  this->reset_();
+
+  // this->wait_until_idle_();
+  // this->command(HDEPAPER75_SW_RESET);
+  // this->wait_until_idle_();
+
+  // 7inch_HD_e-Paper_Specification.pdf page 17.
+  this->command(HDEPAPER75_AUTO_WRITE_RED_RAM);
   this->data(0xf7);
   this->wait_until_idle_();
-  this->command(0x47);
+  this->command(HDEPAPER75_AUTO_WRITE_BLACK_RAM);
   this->data(0xf7);
   this->wait_until_idle_();
 
-  this->command(0x0C);
+  // Set inrush current booster to level 1
+  this->command(HDEPAPER75_SOFT_START_SETTING);
   this->data(0xAE);
   this->data(0xC7);
   this->data(0xC3);
   this->data(0xC0);
   this->data(0x40);
 
-  this->command(0x01);
+  // Set MUX as 527
+  this->command(HDEPAPER75_DRIVER_OUTPUT_CONTROL);
   this->data(0xAF);
   this->data(0x02);
   this->data(0x01);
 
-  this->command(0x11);
-  this->data(0x01);
+  this->command(HDEPAPER75_DATA_ENTRY_MODE);
+  this->data(0x01); // –Y decrement, X increment
 
-  this->command(0x44);
+  this->command(HDEPAPER75_SET_RAM_X_START_END_POS);
+  this->data(0x00); // RAM x address start at 0
   this->data(0x00);
-  this->data(0x00);
-  this->data(0x6F);
+  this->data(0x6F); // RAM x address end at 36Fh -> 879
   this->data(0x03);
-  this->command(0x45);
-  this->data(0xAF);
+  this->command(HDEPAPER75_SET_RAM_Y_START_END_POS);
+  this->data(0xAF); // RAM y address start at 20Fh;
   this->data(0x02);
-  this->data(0x00);
+  this->data(0x00); // RAM y address end at 00h;
   this->data(0x00);
 
-  this->command(0x3C);
-  this->data(0x05);
+  // Set waveform
+  // SSD1677Specification.pdf page 15
+  this->command(HDEPAPER75_BORDER_WAVEFORM); // VBD
+  this->data(0x01); // LUT1, for white
 
-  this->command(0x18);
+  // Select internal temperature sensor
+  this->command(HDEPAPER75_TEMP_SENSOR_SEL);
   this->data(0X80);
 
-  this->command(0x22);
+  //Load Temperature and waveform setting.
+  this->command(HDEPAPER75_DISPLAY_UPDATE_CONTROL_2);
   this->data(0XB1);
-  this->command(0x20);
-  this->wait_until_idle_();
 
-  this->command(0x4E);
+  this->command(HDEPAPER75_SET_RAM_X_ADDRESS); 
   this->data(0x00);
   this->data(0x00);
-  this->command(0x4F);
-  this->data(0x00);
-  this->data(0x00);
+  this->command(HDEPAPER75_SET_RAM_Y_ADDRESS); 
+  this->data(0xAF);
+  this->data(0x02);
+
+  ESP_LOGV(TAG, "Clearing display");
+  this->command(HDEPAPER75_WRITE_RAM_BLACK);
+  for (uint32_t i = 0; i < buf_len; i++) {
+    this->data(0xFF);
+  }
+  this->command(HDEPAPER75_WRITE_RAM_RED);
+  for (uint32_t i = 0; i < (buf_len); i++) {
+    this->data(0x00);
+  }
+
+  // Activate Display Update Sequence
+  this->command(HDEPAPER75_MASTER_ACTIVATION);
+    // !!!The delay here is necessary, 200uS at least!!!
+  ESP_LOGD(TAG, "Delay");
+  delay(30);  // NOLINT
+  ESP_LOGD(TAG, "Wait");
+  this->wait_until_idle_();
 }
 void HOT WaveshareEPaper7P5InHD::display() {
   uint32_t buf_len = this->get_buffer_length_();
   // COMMAND DATA START TRANSMISSION NEW DATA
-  this->command(0x13);
-  delay(2);
+  ESP_LOGV(TAG, "HDEPAPER75_SET_RAM_X_ADDRESS");
+  this->command(HDEPAPER75_SET_RAM_X_ADDRESS); 
+  this->data(0x00);
+  this->data(0x00);
+  ESP_LOGV(TAG, "HDEPAPER75_SET_RAM_Y_ADDRESS");
+  this->command(HDEPAPER75_SET_RAM_Y_ADDRESS);
+  this->data(0xAF);
+  this->data(0x02);
+
+  ESP_LOGV(TAG, "HDEPAPER75_WRITE_RAM_BLACK");
+  this->command(HDEPAPER75_WRITE_RAM_BLACK);
   for (uint32_t i = 0; i < buf_len; i++) {
-    this->data(~(this->buffer_[i]));
+      this->data((this->buffer_[i]));
   }
+  // display red here one day with HDEPAPER75_WRITE_RAM_RED
+  // when we have a second buffer for red
+
+  // ESP_LOGV(TAG, "HDEPAPER75_WRITE_RAM_RED");
+  // this->command(HDEPAPER75_WRITE_RAM_RED);
+  // for (uint32_t i = 0; i < buf_len; i++) {
+  //   this->data(~(this->buffer_[i]));
+  // }
+
+  ESP_LOGV(TAG, "HDEPAPER75_DISPLAY_UPDATE_CONTROL_2");
+  this->command(HDEPAPER75_DISPLAY_UPDATE_CONTROL_2);
+  this->data(0xC7);    //Load LUT from MCU(0x32)
 
   // COMMAND DISPLAY REFRESH
-  this->command(0x12);
-  delay(100);  // NOLINT
+  ESP_LOGV(TAG, "HDEPAPER75_MASTER_ACTIVATION");
+  this->command(HDEPAPER75_MASTER_ACTIVATION);
+  // !!!The delay here is necessary, 200uS at least!!!
+  ESP_LOGD(TAG, "Delay");
+  delay(30);  // NOLINT
+  ESP_LOGD(TAG, "Wait");
   this->wait_until_idle_();
+  ESP_LOGD(TAG, "Done displaying");
 }
 
 int WaveshareEPaper7P5InHD::get_width_internal() { return 880; }
